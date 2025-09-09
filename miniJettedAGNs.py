@@ -1,9 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[48]:
-
-
 import time
 import logging
 from pathlib import Path
@@ -18,7 +12,6 @@ from astroquery.xmatch import XMatch
 from utils import (
     get_source_identifier,
     insert_space_source_ids,
-    remove_space_source_ids,
     convert_F_nu_to_luminosity,
 )
 
@@ -29,10 +22,6 @@ logging.basicConfig(
     format="%(asctime)s|%(name)s|%(message)s",
     datefmt="%m/%d/%Y %I:%M:%S %p",
 )
-
-
-# In[49]:
-
 
 def find_xmatch_id_in_catalog(
     xmatch_id, xmatch_id_column, catalog, catalog_id_column, id_strip=None
@@ -66,12 +55,6 @@ def convert_flux_to_luminosity(flux, flux_unit, distance):
     
     return luminosity.to(u.erg / u.s)
 
-
-# # Load the CoreG and FR0 catalogues
-
-# In[52]:
-
-
 #CoreG Catalogs
 ho_1997 = Vizier(columns=["**"], row_limit=-1).get_catalogs("J/ApJS/112/315")
 nagar_2005 = Vizier(columns=["**"], row_limit=-1).get_catalogs("J/A+A/435/521")
@@ -100,27 +83,17 @@ torresi_sources = [
     "SDSS J171522.97+572440.2",
     "SDSS J235744.10−001029.9",
 ]
-#Swift-BAT Catalogs of 105 month survey, Detected AGN in 60 months, 
-swift_bat_105_months = Vizier(columns=["**"], row_limit=-1).get_catalogs("J/ApJS/235/4")
 
-
-# In[53]:
-
-
-morx[0]
-
-
-# In[64]:
-
-
-catalogue = Table(
+coreG_catalogue = Table(
     names=(
         "SOURCE_NAME",
         "SOURCE_TYPE",
-        "SDSS-ID",
-        "FERMI-ID",
+        "SIMBAD SDSS-ID",
+        "SIMBAD FERMI-ID",
+        "SIMBAD NVSS-ID",
         "NVSS-XMATCH-ID",
         "NVSS-MORX-ID",
+        "SIMBAD FIRST-ID",
         "FIRST-XMATCH-ID",
         "FIRST-MORX-ID",
         "XMM-MORX-ID",
@@ -130,6 +103,7 @@ catalogue = Table(
         "VLASS-MORX",
         "LOBE EXTENSION",
         "DISTANCE",
+        "Log10(L_OIII)",
         "TORESSI DETECTION",
         "NVSS-FLUX-XMATCH",
         "NVSS-FLUX-ERROR-XMATCH",
@@ -150,8 +124,11 @@ catalogue = Table(
         str,
         str,
         str,
-        np.float64,
-        np.float64,
+        str,
+        str,
+        np.int16,
+        np.float32,
+        np.float32,
         bool,
         np.float64,
         np.float64,
@@ -172,8 +149,11 @@ catalogue = Table(
         "",
         "",
         "",
+        "",
+        "",
         "mas",
         "Mpc",
+        "erg s-1",
         "",
         "erg s-1",
         "erg s-1",
@@ -183,9 +163,84 @@ catalogue = Table(
     ],
 )
 
-
-# In[65]:
-
+fr0_catalogue = Table(
+    names=(
+        "SOURCE_NAME",
+        "SOURCE_TYPE",
+        "SIMBAD SDSS-ID",
+        "SIMBAD FERMI-ID",
+        "SIMBAD NVSS-ID",
+        "NVSS-XMATCH-ID",
+        "NVSS-MORX-ID",
+        "SIMBAD FIRST-ID",
+        "FIRST-XMATCH-ID",
+        "FIRST-MORX-ID",
+        "XMM-MORX-ID",
+        "CXO-MORX-ID",
+        "SWIFT-MORX-ID",
+        "LoTSS-MORX-ID",
+        "VLASS-MORX",
+        "LOBE EXTENSION",
+        "DISTANCE",
+        "Log10(L_OIII)",
+        "TORESSI DETECTION",
+        "NVSS-FLUX-XMATCH",
+        "NVSS-FLUX-ERROR-XMATCH",
+        "FIRST-FLUX-XMATCH",
+        "FIRST-FLUX-ERROR-XMATCH",
+    ),
+    dtype=[
+        str,
+        str,
+        str,
+        str,
+        str,
+        str,
+        str,
+        str,
+        str,
+        str,
+        str,
+        str,
+        str,
+        str,
+        str,
+        np.int16,
+        np.float32,
+        np.float32,
+        bool,
+        np.float64,
+        np.float64,
+        np.float64,
+        np.float64
+    ],
+    units=[
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "mas",
+        "Mpc",
+        "erg s-1",
+        "",
+        "erg s-1",
+        "erg s-1",
+        "erg s-1",
+        "erg s-1",
+        
+    ],
+)
 
 first_xmatches = XMatch.query(
     cat1=nagar_2005[0],
@@ -197,12 +252,6 @@ first_xmatches = XMatch.query(
     max_distance=10 * u.arcsec,
 )
 
-first_xmatches
-
-
-# In[66]:
-
-
 nvss_xmatches = XMatch.query(
     cat1=nagar_2005[0],
     cat2="vizier:VIII/65/nvss",
@@ -212,16 +261,6 @@ nvss_xmatches = XMatch.query(
     colDec2="DEJ2000",
     max_distance=10 * u.arcsec,
 )
-
-
-# In[67]:
-
-
-nvss_xmatches
-
-
-# In[68]:
-
 
 morx_nagar_xmatches = XMatch.query(
     cat1=nagar_2005[0],
@@ -233,16 +272,6 @@ morx_nagar_xmatches = XMatch.query(
     max_distance=1 * u.arcsec,
 )
 
-
-# In[76]:
-
-
-nagar_2005[0]
-
-
-# In[72]:
-
-
 for name, _type, distance, F_15GHz in zip(
     nagar_2005[0]["Name"],
     nagar_2005[0]["AType"],
@@ -253,7 +282,17 @@ for name, _type, distance, F_15GHz in zip(
         log.info(f"considering {name}")
         sdss_id = get_source_identifier(name,"SDSS")
         fermi_id = get_source_identifier(name, "4FGL")
-        distance *= u.Mpc
+        nvss_id = get_source_identifier(name, "NVSS")
+        first_id = get_source_identifier(name, "FIRST")
+        distancee =   distance * u.Mpc
+        
+        match_ho = ho_1997[1]["Name"] == insert_space_source_ids(name)
+        if np.any(match_ho):  # Check if there is at least one True
+            _log_L_alpha = ho_1997[1]["logL(Ha)"][match_ho][0]
+            _OIII = ho_1997[1]["[OIII]"][match_ho][0]
+            L_OIII = np.power(10, _log_L_alpha) * _OIII * u.Unit("erg s-1")
+        else:
+            L_OIII = 0 * u.Unit("erg s-1")
         
         # NVSS cross match with Nagar 2005 measurement
         this_source_nvss_xmatch = nvss_xmatches["Name"] == name
@@ -269,10 +308,9 @@ for name, _type, distance, F_15GHz in zip(
             nvss_xmatch_flux_err = 0
 
         # NVSS Cross matched with Nagar and then with MORX 
-        nvss_space = insert_space_source_ids(nvss_xmatch_name)
-        nvss_morx_match = nvss_space == morx[0]["NVSS-ID"]
+        nvss_morx_match = nvss_xmatch_name == morx_nagar_xmatches["NVSS-ID"]
         if nvss_morx_match.any():
-            morx_nvss_name = morx[0]["NVSS-ID"][nvss_morx_match][0]
+            morx_nvss_name = morx_nagar_xmatches["NVSS-ID"][nvss_morx_match][0]
         else:
             morx_nvss_name = ""
 
@@ -282,16 +320,21 @@ for name, _type, distance, F_15GHz in zip(
             first_xmatch_name = (
                 "FIRST " + first_xmatches["FIRST"][this_source_first_xmatch][0]
             )
+            first_xmatch_name_nospace = (
+                "FIRST" + first_xmatches["FIRST"][this_source_first_xmatch][0]
+            )
             first_xmatch_flux = first_xmatches["Fint"][this_source_first_xmatch][0]
             first_xmatch_flux_err = first_xmatches["Rms"][this_source_first_xmatch][0]
+            
         else:
             first_xmatch_name = ""
+            first_xmatch_name_nospace = ""
             first_xmatch_flux = 0
             first_xmatch_flux_err = 0
             
-        first_morx_match = first_xmatch_name == morx[0]["FIRST-ID"]
+        first_morx_match = first_xmatch_name_nospace == morx_nagar_xmatches["FIRST-ID"]
         if first_morx_match.any():
-            morx_first_name = morx[0]["FIRST-ID"][first_morx_match][0]
+            morx_first_name = morx_nagar_xmatches["FIRST-ID"][first_morx_match][0]
         else:
             morx_first_name = ""
 
@@ -318,15 +361,16 @@ for name, _type, distance, F_15GHz in zip(
         # check if the source is in the list of sources detected by Torresi et al. 2018
         torresi_detection = sdss_id in torresi_sources
 
-
-        catalogue.add_row(
+        coreG_catalogue.add_row(
             [
                 name,
                 _type,
                 sdss_id,
                 fermi_id,
+                nvss_id,
                 nvss_xmatch_name,
                 morx_nvss_name,
+                first_id,
                 first_xmatch_name,
                 morx_first_name,
                 morx_xmm,
@@ -335,33 +379,14 @@ for name, _type, distance, F_15GHz in zip(
                 morx_lotss,
                 morx_vlass,
                 morx_lobedist,
+                distancee,
+                np.log10(L_OIII.to_value("erg s-1")),
                 torresi_detection,
-                distance.to_value("Mpc"),
-                convert_F_nu_to_luminosity(1.4 * u.GHz, nvss_xmatch_flux, u.mJy, distance),
-                convert_F_nu_to_luminosity(1.4 * u.GHz, nvss_xmatch_flux_err, u.mJy, distance),
-                convert_F_nu_to_luminosity(1.4 * u.GHz, first_xmatch_flux, u.mJy, distance),
-                convert_F_nu_to_luminosity(1.4 * u.GHz, first_xmatch_flux_err, u.mJy, distance),
+                convert_F_nu_to_luminosity(1.4 * u.GHz, nvss_xmatch_flux, u.mJy, distancee),
+                convert_F_nu_to_luminosity(1.4 * u.GHz, nvss_xmatch_flux_err, u.mJy, distancee),
+                convert_F_nu_to_luminosity(1.4 * u.GHz, first_xmatch_flux, u.mJy, distancee),
+                convert_F_nu_to_luminosity(1.4 * u.GHz, first_xmatch_flux_err, u.mJy, distancee),
             ])
-
-
-# In[73]:
-
-
-catalogue
-
-
-# In[78]:
-
-
-np.array(catalogue['LOBE EXTENSION'])
-
-
-# In[31]:
-
-
-# let us do the same for FR0 galaxies
-# we do not need to XMatch with NVSS as there is already a NVSS flux measurement for the FR0 sources
-# we will not search for FIRST counterparts as there is already the NVSS flux measurement at 1.4 GHz
 
 first_fr0_xmatches = XMatch.query(
     cat1=fr0cat[0],
@@ -373,214 +398,136 @@ first_fr0_xmatches = XMatch.query(
     max_distance=10 * u.arcsec,
 )
 
+nvss_fr0_xmatches = XMatch.query(
+    cat1=fr0cat[0],
+    cat2="vizier:VIII/65/nvss",
+    colRA1="_RA",
+    colDec1="_DE",
+    colRA2="RAJ2000",
+    colDec2="DEJ2000",
+    max_distance=5 * u.arcsec,
+)
+
+morx_fr0_xmatches = XMatch.query(
+    cat1=fr0cat[0],
+    cat2="vizier:V/158/morxv2",
+    colRA1="_RA",
+    colDec1="_DE",
+    colRA2="RAJ2000",
+    colDec2="DEJ2000",
+    max_distance=1 * u.arcsec,
+)
+
+# let us do the same for FR0 galaxies
+# we do not need to XMatch with NVSS as there is already a NVSS flux measurement for the FR0 sources
+# we will not search for FIRST counterparts as there is already the NVSS flux measurement at 1.4 GHz
+
+
 for row in fr0cat[0]:
     sdss_id = row["SimbadName"]
-    log.info(f"considering {sdss_id}")
     ngc_id = get_source_identifier(sdss_id, "NGC")
-    ic_id = get_source_identifier(sdss_id, "IC")
-    _2mass_id = get_source_identifier(sdss_id, "2MASX")
-    nvss_id = get_source_identifier(sdss_id, "NVSS")
     first_id = get_source_identifier(sdss_id, "FIRST")
-    gaia_id = get_source_identifier(sdss_id, "Gaia DR3")
-    fermi_id = get_source_identifier(name, "4FGL")
-
+    ic_id = get_source_identifier(sdss_id, "IC")
+    nvss_id = get_source_identifier(sdss_id, "NVSS")
+    name = ngc_id if ngc_id else ic_id
+    fermi_id = get_source_identifier(sdss_id, "4FGL")
     distance = Distance(z=row["z"]).to("Mpc")
-
-    L_OIII = np.power(10, row["logL[OIII]"])
+    L_OIII_FR0 = row["logL[OIII]"]
     L_NVSS = np.power(10, row["logLr"])
-
+   
     # FIRST measurement
     this_source_first_xmatch = first_fr0_xmatches["SimbadName"] == sdss_id
     if this_source_first_xmatch.any():
         first_xmatch_name = (
             "FIRST " + first_fr0_xmatches["FIRST"][this_source_first_xmatch][0]
         )
+        first_xmatch_name_nospace = (
+                "FIRST" + first_fr0_xmatches["FIRST"][this_source_first_xmatch][0]
+            )
         first_xmatch_flux = first_fr0_xmatches["Fint"][this_source_first_xmatch][0]
         first_xmatch_flux_err = first_fr0_xmatches["Rms"][this_source_first_xmatch][0]
     else:
         first_xmatch_name = ""
         first_xmatch_flux = 0
+        first_xmatch_name_nospace = ""
         first_xmatch_flux_err = 0
+            
+    first_morx_match = first_xmatch_name_nospace == morx_fr0_xmatches["FIRST-ID"]
+    if first_morx_match.any():
+        morx_first_name = morx_fr0_xmatches["FIRST-ID"][first_morx_match][0]
+    else:
+        morx_first_name = ""   
 
-     # XMM cross match with FR0cat measurement
-        this_source_xmm_xmatch = xmm_xmatches_fr0["Name"] == name
-        if this_source_xmm_xmatch.any():
-            xmm_xmatch_name = (
-                "4XMM " + xmm_xmatches["4XMM"][this_source_xmm_xmatch][0]
-            )
-            xmm_xmatch_flux = xmm_xmatches["Flux8"][this_source_xmm_xmatch][0]
-            xmm_xmatch_flux_err = xmm_xmatches["e_Flux8"][this_source_xmm_xmatch][0]
-        else:
-            xmm_xmatch_name = ""
-            xmm_xmatch_flux = 0
-            xmm_xmatch_flux_err = 0
-
-    # eventual CSC2 xmatches identified through the 2MASS or GAIA ID
-    if _2mass_id:
-        _2mass_xmatches = find_xmatch_id_in_catalog(
-            _2mass_id,
-            "2MASS21P_designation",
-            csc2_xmatched,
-            "CSC21P_name",
-            "2MASX J",
+    # NVSS cross match with Nagar 2005 measurement
+    this_source_nvss_xmatch = nvss_fr0_xmatches["SimbadName"] == sdss_id
+    if this_source_nvss_xmatch.any():
+        nvss_xmatch_name = (
+            "NVSS J" + nvss_fr0_xmatches["NVSS"][this_source_nvss_xmatch][0]
         )
+        nvss_xmatch_flux = nvss_fr0_xmatches["S1.4"][this_source_nvss_xmatch][0]
+        nvss_xmatch_flux_err = nvss_fr0_xmatches["e_S1.4"][this_source_nvss_xmatch][0]
+    else:
+        nvss_xmatch_name = ""
+        nvss_xmatch_flux = 0
+        nvss_xmatch_flux_err = 0
 
-    if gaia_id:
-        gaia_xmatches = find_xmatch_id_in_catalog(
-            gaia_id, "GAIA21P_source_id", csc2_xmatched, "CSC21P_name", "Gaia DR3 "
-        )
-
-    # "common" (NGC or IC) name to be saved in the catalogue
-    name = ngc_id if ngc_id else ic_id
-
-    # search for an eventual swift counterpart
-    # try both with the "common" name and with the 2MAS counterpart
-    swift_bat_name_xmatch = find_xmatch_id_in_catalog(
-        name, "CName", swift_bat_105_months[0], "Swift"
-    )
-    if swift_bat_name_xmatch is None:
-        swift_bat_name_xmatch = find_xmatch_id_in_catalog(
-            _2mass_id, "CName", swift_bat_105_months[0], "Swift"
-        )
-
-    # check if the source is in the list of sources detected by Torresi et al. 2018
+        # NVSS Cross matched with Nagar and then with MORX 
+    nvss_morx_match = nvss_xmatch_name == morx_fr0_xmatches["NVSS-ID"]
+    if nvss_morx_match.any():
+        morx_nvss_name = morx_fr0_xmatches["NVSS-ID"][nvss_morx_match][0]
+    else:
+        morx_nvss_name = ""
+    
+    morx_matches = morx_fr0_xmatches["SimbadName"] == sdss_id
+    if morx_matches.any():
+        morx_xmm = morx_fr0_xmatches["XMM-ID"][morx_matches]
+        morx_cxo = morx_fr0_xmatches["CX-ID"][morx_matches]
+        morx_swift = morx_fr0_xmatches["Swift-ID"][morx_matches]
+        morx_first = morx_fr0_xmatches["FIRST-ID"][morx_matches]
+        morx_nvss = morx_fr0_xmatches["NVSS-ID"][morx_matches]
+        morx_lotss = morx_fr0_xmatches["LoTSS-ID"][morx_matches]
+        morx_vlass = morx_fr0_xmatches["VLASS-ID"][morx_matches]
+        morx_lobedist = morx_fr0_xmatches["Lobedist"][morx_matches]
+    else:
+        morx_xmm = ""
+        morx_cxo = ""
+        morx_swift = ""
+        morx_first = ""
+        morx_nvss = ""
+        morx_lotss = ""
+        morx_vlass = ""
+        morx_lobedist = 0
+        
+        # check if the source is in the list of sources detected by Torresi et al. 2018
     torresi_detection = sdss_id in torresi_sources
 
-    if _2mass_id and _2mass_xmatches is not None:
-        for _2mass_xmatch in _2mass_xmatches:
-            coreg_fr0_expanded_catalogue.add_row(
-                [
-                    name,
-                    "FR0",
-                    sdss_id,
-                    gaia_id,
-                    _2mass_id,
-                    nvss_id,
-                    first_id,
-                    "",
-                    first_xmatch_name,
-                    xmm_xmatch_name,
-                    _2mass_xmatch["CSC21P_name"],
-                    swift_name,
-                    fermi_id,
-                    torresi_detection,
-                    distance.to_value("Mpc"),
-                    L_OIII,
-                    0,
-                    L_NVSS,
-                    0,
-                    convert_F_nu_to_luminosity(
-                        1.4 * u.GHz, first_xmatch_flux, u.mJy, distance
-                    ),
-                    convert_F_nu_to_luminosity(
-                        1.4 * u.GHz, first_xmatch_flux_err, u.mJy, distance
-                    ),
-                    _2mass_xmatch["flux_aper_b"] * distance.to_value("cm") ** 2,
-                    _2mass_xmatch["flux_aper_lolim_b"] * distance.to_value("cm") ** 2,
-                    _2mass_xmatch["flux_aper_hilim_b"] * distance.to_value("cm") ** 2,
-                    convert_flux_to_luminosity(xmm_xmatch_flux,'mW / m**2', distance),
-                    convert_flux_to_luminosity(xmm_xmatch_flux_err,'mW / m**2', distance),
-                ]
-            )
+    fr0_catalogue.add_row(
+         [
+            name,
+            "FR0",
+            sdss_id,
+            fermi_id,
+            nvss_id,
+            nvss_xmatch_name,
+            morx_nvss_name,
+            first_id,
+            first_xmatch_name,
+            morx_first_name,
+            morx_xmm,
+            morx_cxo,
+            morx_swift,
+            morx_lotss,
+            morx_vlass,
+            morx_lobedist,
+            distance.to_value("Mpc"),
+            L_OIII_FR0,
+            torresi_detection,
+            convert_F_nu_to_luminosity(1.4 * u.GHz, nvss_xmatch_flux, u.mJy, distance),
+            convert_F_nu_to_luminosity(1.4 * u.GHz, nvss_xmatch_flux_err, u.mJy, distance),
+            convert_F_nu_to_luminosity(1.4 * u.GHz, first_xmatch_flux, u.mJy, distance),
+            convert_F_nu_to_luminosity(1.4 * u.GHz, first_xmatch_flux_err, u.mJy, distance),
+        ])
 
-    if gaia_id and gaia_xmatches is not None:
-        for gaia_xmatch in gaia_xmatches:
-            coreg_fr0_expanded_catalogue.add_row(
-                [
-                    name,
-                    "FR0",
-                    sdss_id,
-                    gaia_id,
-                    _2mass_id,
-                    nvss_id,
-                    first_id,
-                    "",
-                    first_xmatch_name,
-                    xmm_xmatch_name,
-                    gaia_xmatch["CSC21P_name"],
-                    swift_name,
-                    fermi_id,
-                    torresi_detection,
-                    distance.to_value("Mpc"),
-                    L_OIII,
-                    0,
-                    L_NVSS,
-                    0,
-                    convert_F_nu_to_luminosity(
-                        1.4 * u.GHz, first_xmatch_flux, u.mJy, distance
-                    ),
-                    convert_F_nu_to_luminosity(
-                        1.4 * u.GHz, first_xmatch_flux_err, u.mJy, distance
-                    ),
-                    gaia_xmatch["flux_aper_b"] * distance.to_value("cm") ** 2,
-                    gaia_xmatch["flux_aper_lolim_b"] * distance.to_value("cm") ** 2,
-                    gaia_xmatch["flux_aper_hilim_b"] * distance.to_value("cm") ** 2,
-                    convert_flux_to_luminosity(xmm_xmatch_flux,'mW / m**2', distance),
-                    convert_flux_to_luminosity(xmm_xmatch_flux_err,'mW / m**2', distance),
-                ]
-            )
+from astropy.table import vstack
 
-    else:
-        coreg_fr0_expanded_catalogue.add_row(
-            [
-                name,
-                "FR0",
-                sdss_id,
-                gaia_id,
-                _2mass_id,
-                nvss_id,
-                first_id,
-                "",
-                first_xmatch_name,
-                xmm_xmatch_name,
-                "",
-                swift_name,
-                fermi_id,
-                torresi_detection,
-                distance.to_value("Mpc"),
-                L_OIII,
-                0,
-                L_NVSS,
-                0,
-                convert_F_nu_to_luminosity(
-                    1.4 * u.GHz, first_xmatch_flux, u.mJy, distance
-                ),
-                convert_F_nu_to_luminosity(
-                    1.4 * u.GHz, first_xmatch_flux_err, u.mJy, distance
-                ),
-                0,
-                0,
-                0,
-                convert_flux_to_luminosity(xmm_xmatch_flux,'mW / m**2', distance),
-                convert_flux_to_luminosity(xmm_xmatch_flux_err,'mW / m**2', distance),
-            ]
-        )
-
-
-# In[32]:
-
-
-coreg_fr0_expanded_catalogue
-
-
-# In[36]:
-
-
-np.array(coreg_fr0_expanded_catalogue['XMATCH_XMM_ID'][-109:-1])
-
-
-# In[34]:
-
-
-path = Path("./")
-path.mkdir(exist_ok=True, parents=True)
-coreg_fr0_expanded_catalogue.write(
-    path / "coreg_fr0_expanded_catalogue.fits", overwrite=True
-)
-
-
-# In[ ]:
-
-
-
-
+fr0_coreG_catalogue = vstack([fr0_catalogue,coreG_catalogue])
