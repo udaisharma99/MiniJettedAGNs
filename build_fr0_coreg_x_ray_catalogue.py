@@ -8,6 +8,8 @@ ho_1997 = Vizier(columns=["**"], row_limit=-1).get_catalogs("J/ApJS/112/315")
 nagar_2005 = Vizier(columns=["**"], row_limit=-1).get_catalogs("J/A+A/435/521")
 # - FR0 Catalog
 fr0cat = Vizier(columns=["**"], row_limit=-1).get_catalogs("J/A+A/609/A1")
-
-
+#MORX Catalog
+morx = Vizier(columns=["**"], row_limit=-1).get_catalogs("V/158/morxv2")
 import IPython; IPython.embed()
+# Swift X-ray catalogue
+swift = Vizier(columns=["**"], row_limit=-1).get_catalogs("J/ApJS/207/28")
