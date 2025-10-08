@@ -91,7 +91,8 @@ columns = [
     Column(name="SWIFT HR2 L_err", data=None, dtype="float64", unit=""),
     Column(name="SWIFT HR2 U_err", data=None, dtype="float64", unit=""),
 ]
-table = Table(columns)
+table_coreG = Table(columns)
+table_fr0 = Table(columns)
 
 class CatalogBuilder():
 

@@ -13,7 +13,7 @@ from utils import (
     insert_space_source_ids,
     convert_F_nu_to_luminosity,
 )
-from table_structure import CatalogBuilder, table
+from table_structure import CatalogBuilder, table_coreG, table_fr0
   
 log = logging.getLogger(__name__)
 logging.basicConfig(
@@ -291,7 +291,7 @@ nustar_fr0_xmatches = XMatch.query(
     max_distance=180 * u.arcsec,
 )
 
-coreG_catalogue = CatalogBuilder(table)
+coreG_catalogue = CatalogBuilder(table_coreG)
 
 for name, _type, distance, F_15GHz in zip(
     nagar_2005[0]["Name"],
@@ -640,7 +640,7 @@ for name, _type, distance, F_15GHz in zip(
             twosxps_hr_2_uerr
         )
 
-fr0_catalogue = CatalogBuilder(table)
+fr0_catalogue = CatalogBuilder(table_fr0)
 
 for row in fr0cat[0]:
     sdss_id = row["SimbadName"]
