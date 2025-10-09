@@ -2,7 +2,7 @@ Cross-Matched Catalog of LLAGNs and FR0 Radio Galaxies
 
 This repository provides a cross-matched catalog of low-luminosity AGNs (from the Palomar sample) and FR0 radio galaxies against multiple major surveys. The catalog integrates data from:
 
-	•	X-ray: Swift 2SXPS, CSC 1.1, CSC 2.1, 4XMM-DR14
+	•	X-ray: Swift 2SXPS, CSC 1.1, CSC 2.1, 4XMM-DR14, BAT-105 Month Survey
 	•	Multi-wavelength / Optical: MORX
 	•	Radio: NVSS, FIRST
 
