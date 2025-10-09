@@ -2,8 +2,9 @@
 import time
 import logging
 import numpy as np
+from pathlib import Path
 import astropy.units as u
-from astropy.table import Table,  vstack
+from astropy.table import Table,  vstack 
 from astropy.coordinates import Distance
 from astropy.coordinates import SkyCoord, FK5
 from astroquery.vizier import Vizier
@@ -71,6 +72,10 @@ twosxps_swift['e_FPCU0'] = np.where(twosxps_swift['e_FPCU0'] == '---', 0, twosxp
 twosxps_swift['FPCU0'] = twosxps_swift['FPCU0'] * u.Unit('mW/m**2')
 twosxps_swift['E_FPCU0'] = twosxps_swift['E_FPCU0'] * u.Unit('mW/m**2')
 twosxps_swift['e_FPCU0'] = twosxps_swift['e_FPCU0'] * u.Unit('mW/m**2')
+
+#Swift BAT 105 month Catalog
+bat_105 = Vizier(columns=["**"], row_limit=-1).get_catalogs("J/ApJS/235/4/table3")
+bat_105 = bat_105[0]
 
 #4XMM Catalog
 fourxmm = Table.read('4XMM_DR14cat_v1.0.csv', format='csv')
@@ -186,6 +191,15 @@ twosxps_nagar_xmatches = XMatch.query(
     colDec2="DEJ2000",
     max_distance= 3 * u.arcsec,
 )
+bat_nagar_xmatches = XMatch.query(
+    cat1=nagar_2005[0],
+    cat2=bat_105,
+    colRA1="_RA",
+    colDec1="_DE",
+    colRA2="RAJ2000",
+    colDec2="DEJ2000",
+    max_distance=3 * u.arcsec,
+)
 
 cxotwo_nagar_xmatches = XMatch.query(
     cat1=nagar_2005[0],
@@ -262,6 +276,16 @@ twosxps_fr0_xmatches = XMatch.query(
     colRA2="RAJ2000",
     colDec2="DEJ2000",
     max_distance= 3 * u.arcsec,
+)
+
+bat_fr0_xmatches = XMatch.query(
+    cat1=fr0cat[0],
+    cat2=bat_105,
+    colRA1="_RA",
+    colDec1="_DE",
+    colRA2="RAJ2000",
+    colDec2="DEJ2000",
+    max_distance=3 * u.arcsec,
 )
 cxotwo_fr0_xmatches = XMatch.query(
     cat1=fr0cat[0],
@@ -445,6 +469,7 @@ for name, _type, distance, F_15GHz in zip(
             fourxmm_hr3 = 0
             fourxmm_hr4 = 0
             xmm_detections = 0
+        
         cxotwo_xmatch = cxotwo_nagar_xmatches['Name'] == name
         if cxotwo_xmatch.any():
             index_cxotwo = cxotwo_nagar_xmatches['row_id'][cxotwo_xmatch][0]
@@ -547,7 +572,15 @@ for name, _type, distance, F_15GHz in zip(
             twosxps_broadflux = 0
             twosxps_broadflux_lerr = 0
             twosxps_broadflux_uerr = 0
-          
+
+        bat_xmatch = bat_nagar_xmatches["Name"] == name
+        if bat_xmatch.any():
+            bat_id = (
+                "BAT " + bat_nagar_xmatches["Swift"][bat_xmatch][0]
+            )
+        else:
+            bat_id = ""
+
         # check if the source is in the list of sources detected by Torresi et al. 2018
         torresi_detection = sdss_id in torresi_sources
 
@@ -565,6 +598,7 @@ for name, _type, distance, F_15GHz in zip(
             cxotwo_id,
             morx_swift,
             twosxps_id,
+            bat_id,
             fermi_id,
             transient_name,
             torresi_detection,
@@ -868,7 +902,15 @@ for row in fr0cat[0]:
         twosxps_broadflux = 0
         twosxps_broadflux_lerr = 0
         twosxps_broadflux_uerr = 0
-        
+
+    bat_xmatch = bat_fr0_xmatches["SimbadName"] == sdss_id
+    if bat_xmatch.any():
+        bat_id = (
+            "BAT " + bat_fr0_xmatches["Swift"][bat_xmatch][0]
+        )
+    else:
+            bat_id = ""    
+  
         # check if the source is in the list of sources detected by Torresi et al. 2018
     torresi_detection = sdss_id in torresi_sources
     
@@ -886,6 +928,7 @@ for row in fr0cat[0]:
             cxotwo_id,
             morx_swift,
             twosxps_id,
+            bat_id,
             fermi_id,
             transient_name,
             torresi_detection,
@@ -961,6 +1004,23 @@ for row in fr0cat[0]:
             twosxps_hr_2_uerr
         )
 
-#fr0_coreG_catalogue = vstack([fr0_catalogue,coreG_catalogue])
+fr0_catalogue = fr0_catalogue.table 
+path1 = Path("./")
+path1.mkdir(exist_ok=True, parents=True)
+fr0_catalogue.write(
+    path1 / "fr0_catalogue.fits", overwrite=True
+)
+coreG_catalogue = coreG_catalogue.table
+path2 = Path("./")
+path2.mkdir(exist_ok=True, parents=True)
+coreG_catalogue.write(
+    path2 / "coreG_catalogue.fits", overwrite=True
+)
+fr0_coreG_catalogue = vstack([fr0_catalogue,coreG_catalogue])
+path = Path("./")
+path.mkdir(exist_ok=True, parents=True)
+fr0_coreG_catalogue.write(
+    path / "fr0_coreG_catalogue.fits", overwrite=True
+)
 
 import IPython; IPython.embed()

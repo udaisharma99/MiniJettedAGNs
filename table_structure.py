@@ -17,6 +17,7 @@ columns = [
     Column(name="CSC2.1-ID", data=None, dtype="str", unit="", description="updating info in MORX"),
     Column(name="MORX-SWIFT-ID", data=None, dtype="str", unit=""),
     Column(name="2SXPS-ID", data=None, dtype="str", unit="", description="updating info in MORX"),
+    Column(name="BAT-105Month-ID", data=None, dtype="str", unit=""),
     Column(name="FERMI-ID", data=None, dtype="str", unit=""),
     Column(name="1FLT-ID", data=None, dtype="str", unit=""),
     Column(name="TORESSI DETECTION", data=None, dtype="bool", unit=""),
@@ -101,7 +102,7 @@ class CatalogBuilder():
 
     def add_source(self, source_name, source_type, lotss_morx_id, vlass_morx_id,
                    nvss_id, first_id, sdss_id, morx_xmm_id, xmm_dr14_id,
-                   morx_cxo_id, csc2_1_id, morx_swift_id, sxps_id, fermi_id,
+                   morx_cxo_id, csc2_1_id, morx_swift_id, sxps_id, bat_105_id, fermi_id,
                    flt_id, toressi_detection, xmm_variability_flag,
                    chandra_variability, lobe_extension, distance, log_loiii,
                    nvss_flux_xmatch, nvss_flux_error_xmatch, first_flux_xmatch,
@@ -136,7 +137,7 @@ class CatalogBuilder():
                    swift_hr2_u_err):
         self.table.add_row((source_name, source_type, lotss_morx_id, vlass_morx_id,
                             nvss_id, first_id, sdss_id, morx_xmm_id, xmm_dr14_id,
-                            morx_cxo_id, csc2_1_id, morx_swift_id, sxps_id, fermi_id,
+                            morx_cxo_id, csc2_1_id, morx_swift_id, sxps_id, bat_105_id,fermi_id,
                             flt_id, toressi_detection, xmm_variability_flag,
                             chandra_variability, lobe_extension, distance, log_loiii,
                             nvss_flux_xmatch, nvss_flux_error_xmatch, first_flux_xmatch,
