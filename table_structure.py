@@ -4,6 +4,8 @@ from astropy.table import Table, Column
 
 # build the table structure
 columns = [
+    Column(name="RA", data=None, dtype="float64", unit="deg"),
+    Column(name="DEC", data=None, dtype="float64", unit="deg"),
     Column(name="SOURCE_NAME", data=None, dtype="str", unit=""),
     Column(name="SOURCE_TYPE", data=None, dtype="str", unit=""),
     Column(name="LoTSS-MORX-ID", data=None, dtype="str", unit=""),
@@ -100,7 +102,7 @@ class CatalogBuilder():
     def __init__(self, table):
         self.table = table
 
-    def add_source(self, source_name, source_type, lotss_morx_id, vlass_morx_id,
+    def add_source(self, RA, DEC, source_name, source_type, lotss_morx_id, vlass_morx_id,
                    nvss_id, first_id, sdss_id, morx_xmm_id, xmm_dr14_id,
                    morx_cxo_id, csc2_1_id, morx_swift_id, sxps_id, bat_105_id, fermi_id,
                    flt_id, toressi_detection, xmm_variability_flag,
@@ -135,7 +137,7 @@ class CatalogBuilder():
                    swift_mean_broad_flux_pl_u_err, swift_hr1, swift_hr1_l_err,
                    swift_hr1_u_err, swift_hr2, swift_hr2_l_err,
                    swift_hr2_u_err):
-        self.table.add_row((source_name, source_type, lotss_morx_id, vlass_morx_id,
+        self.table.add_row((RA, DEC, source_name, source_type, lotss_morx_id, vlass_morx_id,
                             nvss_id, first_id, sdss_id, morx_xmm_id, xmm_dr14_id,
                             morx_cxo_id, csc2_1_id, morx_swift_id, sxps_id, bat_105_id,fermi_id,
                             flt_id, toressi_detection, xmm_variability_flag,

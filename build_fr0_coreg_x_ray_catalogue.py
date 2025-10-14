@@ -325,8 +325,10 @@ for name, _type, distance, F_15GHz in zip(
 ):
     if "L" in _type:
         log.info(f"considering {name}")
-        
         #SIMBAD Identifiers
+        index_coords = nagar_2005[0]['Name'] == name
+        ra = nagar_2005[0]['_RA'][index_coords][0]
+        dec = nagar_2005[0]['_DE'][index_coords][0]
         sdss_id = get_source_identifier(name,"SDSS")
         nvss_id = get_source_identifier(name, "NVSS")
         first_id = get_source_identifier(name, "FIRST")
@@ -585,11 +587,13 @@ for name, _type, distance, F_15GHz in zip(
         torresi_detection = sdss_id in torresi_sources
 
         coreG_catalogue.add_source(
-            name, 
-            _type, 
-            morx_lotss, 
-            morx_vlass, 
-            nvss_id, 
+            ra,
+            dec,
+            name,
+            _type,
+            morx_lotss,
+            morx_vlass,
+            nvss_id,
             first_id,
             sdss_id,
             morx_xmm,
@@ -678,6 +682,8 @@ fr0_catalogue = CatalogBuilder(table_fr0)
 
 for row in fr0cat[0]:
     sdss_id = row["SimbadName"]
+    ra = row["_RA"]
+    dec = row["_DE"]
     ngc_id = get_source_identifier(sdss_id, "NGC")
     first_id = get_source_identifier(sdss_id, "FIRST")
     ic_id = get_source_identifier(sdss_id, "IC")
@@ -915,6 +921,8 @@ for row in fr0cat[0]:
     torresi_detection = sdss_id in torresi_sources
     
     fr0_catalogue.add_source(
+            ra,
+            dec,
             name, 
             "FR0", 
             morx_lotss, 
