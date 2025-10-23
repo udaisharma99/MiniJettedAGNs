@@ -73,9 +73,12 @@ twosxps_swift['FPCU0'] = twosxps_swift['FPCU0'] * u.Unit('mW/m**2')
 twosxps_swift['E_FPCU0'] = twosxps_swift['E_FPCU0'] * u.Unit('mW/m**2')
 twosxps_swift['e_FPCU0'] = twosxps_swift['e_FPCU0'] * u.Unit('mW/m**2')
 
-#Swift BAT 105 month Catalog
-bat_105 = Vizier(columns=["**"], row_limit=-1).get_catalogs("J/ApJS/235/4/table3")
-bat_105 = bat_105[0]
+#BAT 157-month Catalog
+bat157 = Table.read('BAT_157m.txt', format='ascii',delimiter='|')
+bat157.rename_column('col2', 'BAT_Name')
+bat157.rename_column('col3', 'RAJ2000')
+bat157.rename_column('col4', 'DEJ2000')
+
 
 #4XMM Catalog
 fourxmm = Table.read('4XMM_DR14cat_v1.0.csv', format='csv')
@@ -171,7 +174,6 @@ morx_nagar_xmatches = XMatch.query(
     colDec2="DEJ2000",
     max_distance=3 * u.arcsec,
 )
-
 fourxmm_nagar_xmatches = XMatch.query(
     cat1=nagar_2005[0],
     cat2=fourxmm_coords,
@@ -181,7 +183,6 @@ fourxmm_nagar_xmatches = XMatch.query(
     colDec2="DEJ2000",
     max_distance= 2 * u.arcsec,
 )
-
 twosxps_nagar_xmatches = XMatch.query(
     cat1=nagar_2005[0],
     cat2=twosxps_coords,
@@ -193,12 +194,12 @@ twosxps_nagar_xmatches = XMatch.query(
 )
 bat_nagar_xmatches = XMatch.query(
     cat1=nagar_2005[0],
-    cat2=bat_105,
+    cat2=bat157,
     colRA1="_RA",
     colDec1="_DE",
     colRA2="RAJ2000",
     colDec2="DEJ2000",
-    max_distance=3 * u.arcsec,
+    max_distance=150 * u.arcsec,
 )
 
 cxotwo_nagar_xmatches = XMatch.query(
@@ -219,15 +220,6 @@ ft_nagar_xmatches = XMatch.query(
     colRA2="RAJ2000",
     colDec2="DEJ2000",
     max_distance= 3 * u.arcmin,
-)
-nustar_fr0_xmatches = XMatch.query(
-    cat1=nagar_2005[0],
-    cat2="vizier:J/ApJ/836/99/table5",
-    colRA1="_RA",
-    colDec1="_DE",
-    colRA2="RAJ2000",
-    colDec2="DEJ2000",
-    max_distance=180 * u.arcsec,
 )
 
 #Xmatch b/w FR0CAT and NVSS/FIRST/Swift 2SXPS/4XMM-DR14/2CXO
@@ -280,12 +272,12 @@ twosxps_fr0_xmatches = XMatch.query(
 
 bat_fr0_xmatches = XMatch.query(
     cat1=fr0cat[0],
-    cat2=bat_105,
+    cat2=bat157,
     colRA1="_RA",
     colDec1="_DE",
     colRA2="RAJ2000",
     colDec2="DEJ2000",
-    max_distance=3 * u.arcsec,
+    max_distance=150 * u.arcsec,
 )
 cxotwo_fr0_xmatches = XMatch.query(
     cat1=fr0cat[0],
@@ -304,15 +296,6 @@ ft_fr0_xmatches = XMatch.query(
     colRA2="RAJ2000",
     colDec2="DEJ2000",
     max_distance= 3 * u.arcmin,
-)
-nustar_fr0_xmatches = XMatch.query(
-    cat1=fr0cat[0],
-    cat2="vizier:J/ApJ/836/99/table5",
-    colRA1="_RA",
-    colDec1="_DE",
-    colRA2="RAJ2000",
-    colDec2="DEJ2000",
-    max_distance=180 * u.arcsec,
 )
 
 coreG_catalogue = CatalogBuilder(table_coreG)
@@ -350,7 +333,7 @@ for name, _type, distance, F_15GHz in zip(
             transient_name = ft_nagar_xmatches[fermi_transient_name][0]
         else:
             transient_name = ""
-        
+
         # NVSS Measurement
         this_source_nvss_xmatch = nvss_nagar_xmatches["Name"] == name
         if this_source_nvss_xmatch.any():
@@ -578,7 +561,7 @@ for name, _type, distance, F_15GHz in zip(
         bat_xmatch = bat_nagar_xmatches["Name"] == name
         if bat_xmatch.any():
             bat_id = (
-                "BAT " + bat_nagar_xmatches["Swift"][bat_xmatch][0]
+               bat_nagar_xmatches["BAT_Name"][bat_xmatch][0]
             )
         else:
             bat_id = ""
@@ -912,7 +895,7 @@ for row in fr0cat[0]:
     bat_xmatch = bat_fr0_xmatches["SimbadName"] == sdss_id
     if bat_xmatch.any():
         bat_id = (
-            "BAT " + bat_fr0_xmatches["Swift"][bat_xmatch][0]
+            bat_fr0_xmatches["BAT_Name"][bat_xmatch][0]
         )
     else:
             bat_id = ""    
@@ -943,8 +926,8 @@ for row in fr0cat[0]:
             fourxmm_var,
             cxotwo_var,
             morx_lobedist,
-            distancee, 
-            np.log10(L_OIII.to_value("erg s-1")),
+            distance, 
+            L_OIII_FR0,
             convert_F_nu_to_luminosity(1.4 * u.GHz, nvss_xmatch_flux, u.mJy, distance),
             convert_F_nu_to_luminosity(1.4 * u.GHz, nvss_xmatch_flux_err, u.mJy, distance),
             convert_F_nu_to_luminosity(1.4 * u.GHz, first_xmatch_flux, u.mJy, distance),
