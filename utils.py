@@ -6,20 +6,6 @@ from astroquery.simbad import Simbad
 from astroquery.vizier import Vizier
 
 
-log = logging.getLogger(__name__)
-
-
-def get_source_identifier(source_name, start_id):
-    identifiers = Simbad.query_objectids(source_name)
-    mask = [string.startswith(start_id) for string in identifiers["id"]]
-    ids = identifiers["id"][mask]
-    if len(ids) == 0:
-        log.info(f"{start_id} counterpart not available for {source_name}")
-        return ""
-    else:
-        log.info(f"{source_name} matched with {ids[0]} by SIMBAD")
-        return ids[0]
-
 def insert_space_source_ids(source_name):
     """In Nagar et al. (2005) sources ID are reported without a space
     e.g. 'NGC1275', in Ho et al. (1997) there is a space 'NGC1275'."""
