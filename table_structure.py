@@ -21,7 +21,6 @@ columns = [
     Column(name="2SXPS-ID", data=None, dtype="str", unit="", description="updating info in MORX"),
     Column(name="BAT-157-Month-ID", data=None, dtype="str", unit=""),
     Column(name="Simbad-FERMI-ID", data=None, dtype="str", unit="",description="from Simbad"),
-    Column(name="4FGL_DR4-ID", data=None, dtype="str", unit="",description="from 4FGL-DR4"),
     Column(name="1FLT-ID", data=None, dtype="str", unit=""),
     Column(name="TORESSI DETECTION", data=None, dtype="bool", unit=""),
     Column(name="4XMM Variability Flag", data=None, dtype="str", unit=""),
