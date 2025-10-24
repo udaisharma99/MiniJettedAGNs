@@ -162,6 +162,7 @@ class Source:
             "[O I] 6300",
             "[S II]",
             "1.4 GHz",
+            "5 GHz",
             "15 GHz",
         ]
         tables_list = [
@@ -177,10 +178,13 @@ class Source:
         self.nvss_id_simbad = get_source_survey_identifier(self.name, "NVSS")
         self.first_id_simbad = get_source_survey_identifier(self.name, "FIRST")
 
-    def from_catalogue_row(cls, row):
-        """Create a Source object from a row in the catalogue table.
-        We make it work with the CoreG and FR0 catalgoues."""
+    def write_catalogue_row(cls, row):
+        """Write the source information into a catalogue row."""
         pass
+
+    def search_x_ray_counterparts(self):
+        """Search for X-ray counterparts in various catalogues."""
+        
 
     def __repr__(self):
         _string = f"""
