@@ -161,6 +161,7 @@ class Source:
             "[O III] 5007",
             "[O I] 6300",
             "[S II]",
+            "1.4 GHz",
             "15 GHz",
         ]
         tables_list = [
