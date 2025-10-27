@@ -1,4 +1,5 @@
 # structure of the table for the final catalgoue
+import astrop
 import logging
 import numpy as np
 import astropy.units as u
@@ -178,13 +179,52 @@ class Source:
         self.nvss_id_simbad = get_source_survey_identifier(self.name, "NVSS")
         self.first_id_simbad = get_source_survey_identifier(self.name, "FIRST")
 
-    def write_catalogue_row(cls, row):
-        """Write the source information into a catalogue row."""
-        pass
+    def search_x_ray_counterparts(self,x_ray_catalogs):
+        """Search for X-ray counterparts in various catalogues -- MORX, 4XMM-DR14, CSC2.1, 2SXPS, BAT 157 Month Catalog.
+        Make sure x_ray_catalogs = [morx[0], fourxmm, cxotwo[0], twosxps_swift[0], bat157] """
+        c = SkyCoord(ra=self.ra*u.deg, dec=self.dec*u.deg, frame='icrs')
+        #Getting XMM, CXO and Swift counterparts from MORX
+        coords_morx = astropy.coordinates.SkyCoord(ra=x_ray_catalogs[0]['RAJ2000'],dec=x_ray_catalogs[0]['DEJ2000'],unit=(u.deg,u.deg))
+        crossmatch_morx = astropy.coordinates.match_coordinates_sky(c, coords_morx,nthneighbor=1)
+        self.morx_xmm = x_ray_catalogs[crossmatch_morx[0].item()]['XMM-ID']
+        self.morx_cxo = x_ray_catalogs[crossmatch_morx[0].item()]['CX-ID']
+        self.morx_swift = x_ray_catalogs[crossmatch_morx[0].item()]['Swift-ID']
+        self.morx_seperation = crossmatch_morx[1].item()
+        #4XMM-DR14 counterpart
+        coords_4xmm = astropy.coordinates.SkyCoord(ra=x_ray_catalogs[1]['ra'],dec=x_ray_catalogs[1]['dec'],unit=(u.deg,u.deg))
+        crossmatch_4xmm = astropy.coordinates.match_coordinates_sky(c, coords_4xmm,nthneighbor=1)
+        self.xmm_id = x_ray_catalogs[1][crossmatch_4xmm[0].item()]['iauname']
+        self.xmm_seperation = crossmatch_4xmm[1].item()
+        #CSC2.1 counterpart
+        coords_cxo = astropy.coordinates.SkyCoord(ra=x_ray_catalogs[2]['RAICRS'],dec=x_ray_catalogs[2]['DEICRS'],unit=(u.deg,u.deg))
+        crossmatch_cxo = astropy.coordinates.match_coordinates_sky(c, coords_cxo,nthneighbor=1)
+        self.cxo_id = x_ray_catalogs[2][crossmatch_cxo[0].item()]['2CXO']
+        self.cxo_seperation = crossmatch_cxo[1].item()
+        #2SXPS counterpart
+        coords_swift = astropy.coordinates.SkyCoord(ra=x_ray_catalogs[3]['RAJ2000'],dec=x_ray_catalogs[3]['DEJ2000'],unit=(u.deg,u.deg))
+        crossmatch_swift = astropy.coordinates.match_coordinates_sky(c, coords_swift,nthneighbor=1)
+        self.swift_id = x_ray_catalogs[3][crossmatch_swift[0].item()]['IAUName']
+        self.swift_seperation = crossmatch_swift[1].item()
+        #BAT 157 Month Survey Catalog counterpart
+        coords_bat = astropy.coordinates.SkyCoord(ra=x_ray_catalogs[4]['col3'],dec=x_ray_catalogs[4]['col4'],unit=(u.deg,u.deg))
+        crossmatch_bat = astropy.coordinates.match_coordinates_sky(c, coords_bat,nthneighbor=1)
+        self.bat_id = x_ray_catalogs[4][crossmatch_bat[0].item()]['col2']
+        self.bat_seperation = crossmatch_bat[1].item()
 
-    def search_x_ray_counterparts(self):
-        """Search for X-ray counterparts in various catalogues."""
-        
+
+    def search_gamma_ray_counterparts(self):
+        """Search for gamma-ray counterparts in various catalogues -- Fermi 4FGL-DR4 and Fermi Transient 1FLT Catalog."""
+        c = SkyCoord(ra=self.ra*u.deg, dec=self.dec*u.deg, frame='icrs')
+        #Fermi 4FGL-DR4 counterpart
+        coords_4fgl = astropy.coordinates.SkyCoord(ra=gamma_ray_catalogs[0]['RAJ2000'],dec=gamma_ray_catalogs[0]['DEJ2000'],unit=(u.deg,u.deg))
+        crossmatch_4fgl = astropy.coordinates.match_coordinates_sky(c, coords_4fgl,nthneighbor=1)
+        self.fgl_id = gamma_ray_catalogs[0][crossmatch_4fgl[0].item()]['Source_Name']
+        self.fgl_seperation = crossmatch_4fgl[1].item()
+        #Fermi Transient 1FLT counterpart
+        coords_1flt = astropy.coordinates.SkyCoord(ra=gamma_ray_catalogs[1]['RAJ2000'],dec=gamma_ray_catalogs[1]['DEJ2000'],unit=(u.deg,u.deg))
+        crossmatch_1flt = astropy.coordinates.match_coordinates_sky(c, coords_1flt,nthneighbor=1)
+        self.flt_id = gamma_ray_catalogs[1][crossmatch_1flt[0].item()]['Source_Name']
+        self.flt_seperation = crossmatch_1flt[1].item()
 
     def __repr__(self):
         _string = f"""
@@ -194,5 +234,25 @@ class Source:
             sdss_id_simbad: {self.sdss_id_simbad}\n
             nvss_id_simbad: {self.nvss_id_simbad}\n
             first_id_simbad: {self.first_id_simbad}\n
+            morx_xmm: {self.morx_xmm}
+            morx_cxo: {self.morx_cxo}
+            morx_swift: {self.morx_swift}
+            morx_source_seperation: {self.morx_seperation}/{self.morx_seperation.to(u.arcmin)}/{self.morx_seperation.to(u.arcsec)}
+            4xmm_id: {self.xmm_id}
+            4xmm_source_seperation: {self.xmm_seperation}/{self.xmm_seperation.to(u.arcmin)}/{self.xmm_seperation.to(u.arcsec)}
+            2cxo_id: {self.cxo_id}
+            2cxo_source_seperation: {self.cxo_seperation}/{self.cxo_seperation.to(u.arcmin)}/{self.cxo_seperation.to(u.arcsec)}
+            2sxps_swift_id: {self.swift_id}
+            2sxps_swift_source_seperation: {self.swift_seperation}/{self.swift_seperation.to(u.arcmin)}/{self.swift_seperation.to(u.arcsec)}
+            bat157month_id: {self.bat_id}
+            bat157month_source_seperation: {self.bat_seperation}/{self.bat_seperation.to(u.arcmin)}/{self.bat_seperation.to(u.arcsec)}
+            4fgl_id: {self.fgl_id}
+            4fgl_source_seperation: {self.fgl_seperation}/{self.fgl_seperation.to(u.arcmin)}/{self.fgl_seperation.to(u.arcsec)}
+            1flt_id: {self.flt_id}
+            1flt_source_seperation: {self.flt_seperation}/{self.flt_seperation.to(u.arcmin)}/{self.flt_seperation.to(u.arcsec)}
         """
         return _string
+
+    def write_catalogue_row(cls, row):
+        """Write the source information into a catalogue row."""
+        pass
