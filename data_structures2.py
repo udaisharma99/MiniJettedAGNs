@@ -212,8 +212,9 @@ class Source:
         self.bat_seperation = crossmatch_bat[1].item()
 
 
-    def search_gamma_ray_counterparts(self):
-        """Search for gamma-ray counterparts in various catalogues -- Fermi 4FGL-DR4 and Fermi Transient 1FLT Catalog."""
+    def search_gamma_ray_counterparts(self,gamma_ray_catalogs):
+        """Search for gamma-ray counterparts in various catalogues -- Fermi 4FGL-DR4 and Fermi Transient 1FLT Catalog.
+        Make sure gamma_ray_catalogs = [fermi_4fgl, fermi_transient]"""
         c = SkyCoord(ra=self.ra*u.deg, dec=self.dec*u.deg, frame='icrs')
         #Fermi 4FGL-DR4 counterpart
         coords_4fgl = astropy.coordinates.SkyCoord(ra=gamma_ray_catalogs[0]['RAJ2000'],dec=gamma_ray_catalogs[0]['DEJ2000'],unit=(u.deg,u.deg))
