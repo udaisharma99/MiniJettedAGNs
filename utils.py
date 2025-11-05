@@ -1,9 +1,13 @@
 # util functions to get source IDs and fluxes from different catalogues
 import logging
 import numpy as np
+import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astroquery.simbad import Simbad
 from astroquery.vizier import Vizier
+
+
+log = logging.getLogger(__name__)
 
 
 def insert_space_source_ids(source_name):
@@ -22,7 +26,42 @@ def insert_space_source_ids(source_name):
         source_name = source_name.strip("LSXPS")
         source_name = "LSXPS " + source_name
     return source_name
-    
+
+
+def get_source_survey_identifier(source_name, survey_id):
+    """Get the source identifier from SIMBAD starting with a given string
+    e.g. "NVSS", "FIRST, "SDSS", "4FGL", etc."""
+    identifiers = Simbad.query_objectids(source_name)
+    mask = [string.startswith(survey_id) for string in identifiers["id"]]
+    ids = identifiers["id"][mask]
+    if len(ids) == 0:
+        # log.info(f"{survey_id} counterpart not available for {source_name}")
+        return ""
+    elif len(ids) == 1:
+        # log.info(f"{source_name} matched with {ids[0]} by SIMBAD")
+        return ids[0]
+    else:
+        log.warning(
+            f"{len(ids)} {survey_id} counterparts found for {source_name} by SIMBAD. Taking the first one: {ids[0]}"
+        )
+        log.warning(
+            f"full list of counterparts: {ids.data.data} please check on SIMBAD!"
+        )
+        return ids[0]
+
+
+def get_simbad_coordinates(source_name):
+    """Get the coordinates of the source from SIMBAD"""
+    simbad_query = Simbad.query_object(source_name)
+    if simbad_query:
+        ra = simbad_query["ra"][0]
+        dec = simbad_query["dec"][0]
+        return ra, dec
+    else:
+        log.error(f"Source {source_name} not found in SIMBAD")
+        return None, None
+
+
 def convert_ra_dec_spaced_string(ra_string, dec_string):
     """Convert RA and DEC expressed as strings with a space between
     hours (degree) minute and second - e.g. RA = 1 03 45.34. - into
@@ -34,6 +73,16 @@ def convert_ra_dec_spaced_string(ra_string, dec_string):
         ra = ra_string.replace(" ", "h", 1).replace(" ", "m", 1) + "s"
         dec = dec_string.replace(" ", "d", 1).replace(" ", "m", 1) + "s"
     return SkyCoord(ra, dec, frame="icrs")
+
+
+def convert_flux_to_luminosity(flux, distance):
+
+    flux = flux * u.mW/u.m**2
+    D_L = distance.to(u.cm) # Convert Mpc to cm for consistent units
+    flux_in_cgs = flux.to(u.erg / (u.s * u.cm**2))
+    luminosity = 4 * np.pi * D_L**2 * flux_in_cgs
+    
+    return luminosity.to(u.erg / u.s)
 
 
 def get_source_simbad_coordinates(source_name):
