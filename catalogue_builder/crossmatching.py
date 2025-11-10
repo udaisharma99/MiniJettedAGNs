@@ -1,9 +1,22 @@
 
-def search_x_ray_counterparts(self):
-    """Search for X-ray counterparts in various catalogues -- MORX, 4XMM-DR14, CSC2.1, 2SXPS, BAT 157 Month Catalog.
-    Make sure x_ray_catalogs = [morx[0], fourxmm, cxotwo[0], twosxps_swift[0], bat157]
-    """
+import logging
+from .catalogues import morx
+
+# set up logging, get it from the script that imports this module
+log = logging.getLogger(__name__)
+
+def search_morx_counterpart(source):
+    """Search for X-ray counterpart in the MORX catalogue."""
+    # search the source by its SDSS NVSS and FIRST counterparts
+    # TODO: SEARCH only when the name is not ""
+    res_sdss = morx.query_object(source.sdss_id_simbad) if source.sdss_id_simbad != "" else None
+    res_nvss = morx.query_object(source.nvss_id_simbad) if source.nvss_id_simbad != "" else None
+    res_first = morx.query_object(source.first_id_simbad) if source.first_id_simbad != "" else None
+    return res_sdss, res_nvss, res_first
+
+"""
     # Getting XMM, CXO and Swift counterparts from MORX
+
     coords_morx = SkyCoord(
         ra=self.x_ray_catalogs[0]["RAJ2000"],
         dec=self.x_ray_catalogs[0]["DEJ2000"],
@@ -22,6 +35,7 @@ def search_x_ray_counterparts(self):
     self.lobe_extension = (
         self.x_ray_catalogs[0][crossmatch_morx[0].item()]["Lobedist"] * u.mas
     )
+
     # 4XMM-DR14 counterpart
     coords_4xmm = SkyCoord(
         ra=self.x_ray_catalogs[1]["ra"],
@@ -124,8 +138,8 @@ def search_x_ray_counterparts(self):
     self.bat_seperation = crossmatch_bat[1].item()
 
 def search_gamma_ray_counterparts(self):
-    """Search for gamma-ray counterparts in various catalogues -- Fermi 4FGL-DR4 and Fermi Transient 1FLT Catalog.
-    Make sure gamma_ray_catalogs = [fermi_4fgl, fermi_transient]"""
+    "Search for gamma-ray counterparts in various catalogues -- Fermi 4FGL-DR4 and Fermi Transient 1FLT Catalog.
+    Make sure gamma_ray_catalogs = [fermi_4fgl, fermi_transient]"
 
     # Fermi 4FGL-DR4 counterpart
     coords_4fgl = SkyCoord(
@@ -155,7 +169,7 @@ def search_gamma_ray_counterparts(self):
     self.flt_seperation = crossmatch_1flt[1].item()
 
         def flux_information(self):
-        _string = f"""
+        _string = f"
             name: {self.name}\n
             4XMM DR14 (2-4.5 keV) flux: {self.xmm_flux4} +/- {self.xmm_flux4_err}\n
             4XMM DR14 (4.5-12 keV) flux: {self.xmm_flux5} +/- {self.xmm_flux5_err}\n
@@ -167,12 +181,11 @@ def search_gamma_ray_counterparts(self):
             2SXPS Flux (0.3-10 keV): {self.swift_flux} +/- {0.5*(self.swift_flux_uerr+self.swift_flux_lerr)}
             2SXPS Best Fit Photon Index: {self.swift_phoindex} +/- {0.5*(self.swift_phoindex_lerr+self.swift_phoindex_uerr)}
             2SXPS Hardness Ratio: {self.swift_hr} +/- {0.5*(self.swift_hr_lerr+self.swift_hr_uerr)}
-        """
         return _string
 
 
     def write_catalogue_row(self, table):
-        """Write the source information into a catalogue row."""
+        "Write the source information into a catalogue row."
         table.add_row(
             [
                 self.name,
@@ -242,7 +255,7 @@ def search_gamma_ray_counterparts(self):
 
 
     def get_OIII_luminosity(self):
-        """Calculate the [OIII] luminosity from Ho et al. (1997) or FR0CAT."""
+        "Calculate the [OIII] luminosity from Ho et al. (1997) or FR0CAT."
         match_ho = ho_1997[1]["Name"] == insert_space_source_ids(self.name)
         if np.any(match_ho):  # Check if there is at least one True
             _log_L_alpha = ho_1997[1]["logL(Ha)"][match_ho][0]
@@ -254,4 +267,4 @@ def search_gamma_ray_counterparts(self):
             self.LogL_OIII = fr0cat[0]["logL[OIII]"][sdss_match][0]
         else:
             self.LogL_OIII = 0
-
+    """

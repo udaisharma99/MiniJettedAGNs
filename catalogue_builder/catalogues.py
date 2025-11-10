@@ -1,33 +1,63 @@
 # we import all the catalogues from here
 import logging
 from pathlib import Path
-from astropy.table import Table
 from astroquery.vizier import Vizier
-
 
 # set up logging, get it from the script that imports this module
 log = logging.getLogger(__name__)
 # path of this module
 main_dir_path = Path(__file__).parent.parent
 
-# principal catalogues
+# clear vizier cache, in case of repeatedly getting failed queries
+# or bad/out-of-date results
+Vizier.clear_cache()
+
+
+# principal catalogues, these we want to load all
 nagar_2005 = Vizier(columns=["**"], row_limit=-1).get_catalogs("J/A+A/435/521")
 fr0cat = Vizier(columns=["**"], row_limit=-1).get_catalogs("J/A+A/609/A1")
 
-# counterpart catalogues
-## - lines
+# counterpart catalogues, in these we just want to search
+# - lines
 ho_1997 = Vizier(
-    columns=["Name", "AType", "logL(Ha)", "[OIII]"], row_limit=-1
-).get_catalogs("J/ApJS/112/315")
-
-## - radio surveys
-nvss = Vizier(columns=["NVSS", "S1.4", "e_S1.4"], row_limit=-1).get_catalogs(
-    "VIII/65/nvss"
+    catalog="J/ApJS/112/315",
+    columns=["Name", "AType", "logL(Ha)", "[OIII]"],
+    row_limit=-1
 )
 
-first = Vizier(columns=["FIRST", "Fint", "Rms"], row_limit=-1).get_catalogs(
-    "VIII/92/first14"
+# - radio surveys
+# -- NVSS
+nvss = Vizier(
+    catalog="VIII/65/nvss",
+    columns=["NVSS", "S1.4", "e_S1.4"],
+    row_limit=-1
 )
+# -- FIRST
+first = Vizier(
+    catalog="VIII/92/first14",
+    columns=["FIRST", "Fint", "Rms"],
+    row_limit=-1
+)
+
+# - X-ray catalogues
+# -- MORX
+cols_morx = [
+    "Name",
+    "RAJ2000",
+    "DEJ2000",
+    "Type",
+    "NVSS-ID",
+    "XMM-ID",
+    "CX-ID",
+    "Swift-ID",
+    "Lobedist",
+]
+morx = Vizier(
+    catalog="V/158/morxv2",
+    columns=cols_morx,
+    row_limit=-1
+)
+
 """
 ## - X-ray catalogues
 # NOTE: for 4XMM there is already a DR14 that required to be ingested as a file
@@ -83,19 +113,6 @@ cols_twosxps = [
 ]
 twosxps_swift = Vizier(columns=cols_twosxps, row_limit=-1).get_catalogs("IX/58/2sxps")
 log.info("loaded 2SXPS catalogue from Vizier")
-
-cols_morx = [
-    "RAJ2000",
-    "DEJ2000",
-    "XMM-ID",
-    "CX-ID",
-    "Swift-ID",
-    "LoTSS-ID",
-    "VLASS-ID",
-    "Lobedist",
-]
-morx = Vizier(columns=cols_morx, row_limit=-1).get_catalogs("V/158/morxv2")
-log.info("loaded MORX catalogue from Vizier")
 
 bat157 = Table.read(
     f"{main_dir_path}/data/catalogues/BAT_157m.txt",
