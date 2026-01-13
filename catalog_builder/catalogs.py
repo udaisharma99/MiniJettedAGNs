@@ -3,10 +3,12 @@ import logging
 from pathlib import Path
 from astroquery.vizier import Vizier
 
+
 # set up logging, get it from the script that imports this module
 log = logging.getLogger(__name__)
 # path of this module
 main_dir_path = Path(__file__).parent.parent
+
 
 # clear vizier cache, in case of repeatedly getting failed queries
 # or bad/out-of-date results
@@ -18,25 +20,19 @@ nagar_2005 = Vizier(columns=["**"], row_limit=-1).get_catalogs("J/A+A/435/521")
 fr0cat = Vizier(columns=["**"], row_limit=-1).get_catalogs("J/A+A/609/A1")
 
 # counterpart catalogues, in these we just want to search
-# - lines
+# - lines
 ho_1997 = Vizier(
     catalog="J/ApJS/112/315",
     columns=["Name", "AType", "logL(Ha)", "[OIII]"],
-    row_limit=-1
+    row_limit=-1,
 )
 
 # - radio surveys
 # -- NVSS
-nvss = Vizier(
-    catalog="VIII/65/nvss",
-    columns=["NVSS", "S1.4", "e_S1.4"],
-    row_limit=-1
-)
+nvss = Vizier(catalog="VIII/65/nvss", columns=["NVSS", "S1.4", "e_S1.4"], row_limit=-1)
 # -- FIRST
 first = Vizier(
-    catalog="VIII/92/first14",
-    columns=["FIRST", "Fint", "Rms"],
-    row_limit=-1
+    catalog="VIII/92/first14", columns=["FIRST", "Fint", "Rms"], row_limit=-1
 )
 
 # - X-ray catalogues
@@ -46,17 +42,22 @@ cols_morx = [
     "RAJ2000",
     "DEJ2000",
     "Type",
-    "NVSS-ID",
+    "z",
+    "RXpct",
+    "Xraypct",
     "XMM-ID",
     "CX-ID",
     "Swift-ID",
+    "radiopct",
+    "NVSS-ID",
+    "FIRST-ID",
+    "LoTSS-ID",
+    "VLASS-ID",
+    "Lobe1",
+    "Lobe2",
     "Lobedist",
 ]
-morx = Vizier(
-    catalog="V/158/morxv2",
-    columns=cols_morx,
-    row_limit=-1
-)
+morx = Vizier(catalog="V/158/morxv2", columns=cols_morx, row_limit=-1)
 
 """
 ## - X-ray catalogues

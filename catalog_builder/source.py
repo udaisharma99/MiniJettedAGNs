@@ -1,19 +1,24 @@
 # structure of the table for the final catalgoue
 import logging
+from functools import cached_property
 import numpy as np
+import astropy.units as u
 from astropy.coordinates import Distance
 from astroquery.ned import Ned
 from astropy.table import vstack
-from .catalogues import nvss, first
-from .utils import (
+import matplotlib.pyplot as plt
+from .catalog_utils import (
     get_sky_coordinates_simbad,
     get_redshift_simbad,
     get_source_survey_identifier,
     get_source_type_simbad,
-    get_flux_measurements_from_ned_table,
-    compile_radio_sed
 )
-import IPython
+from .flux_utils import (
+    get_flux_measurements_from_ned_table,
+    compile_radio_sed,
+    _plot_radio_sed,
+)
+
 
 # set up logging, get it from the script that imports this module
 log = logging.getLogger(__name__)
@@ -38,9 +43,6 @@ class Source:
         self.find_nvss_first_sdss_counterparts()
         # self.torresi_detection = self.sdss_id_simbad in torresi_sources
         # get lines and radio fluxes measurements
-        self.get_ned_lines_fluxes()
-        self.get_radio_fluxes()
-        self.radio_sed = compile_radio_sed(self.radio_flux_table_ned)
 
     def find_nvss_first_sdss_counterparts(self):
         """Find the NVSS, FIRST, and SDSS identifiers.
@@ -50,26 +52,23 @@ class Source:
         self.sdss_id_simbad = get_source_survey_identifier(self.name, "SDSS")
         # search the NVSS name
         self.nvss_id_simbad = get_source_survey_identifier(self.name, "NVSS")
-        if self.nvss_id_simbad != "":
-            nvss_match = nvss.query_object(self.nvss_id_simbad)
-            if len(nvss_match) > 0:
-                self.nvss_flux = nvss_match[0]["S1.4"]
-                self.nvss_flux_error = nvss_match[0]["e_S1.4"]
-        else:
-            self.nvss_flux = 0
-            self.nvss_flux_error = 0
         # search the FIRST name
         self.first_id_simbad = get_source_survey_identifier(self.name, "FIRST")
-        if self.first_id_simbad != "":
-            first_match = first.query_object(self.first_id_simbad)
-            if len(first_match) > 0:
-                self.first_flux = first_match[0]["Fint"]
-                self.first_flux_error = first_match[0]["Rms"]
-        else:
-            self.first_flux = 0
-            self.first_flux_error = 0
 
-    def get_ned_lines_fluxes(self):
+    def __repr__(self):
+        _string = f"""
+            name : {self.name}
+            ra : {self.coords.ra:.2f}
+            dec : {self.coords.dec:.2f}
+            z : {self.z:.3f}
+            source_type: {self.source_type_simbad}
+            sdss_id_simbad: {self.sdss_id_simbad}
+            nvss_id_simbad: {self.nvss_id_simbad}
+            first_id_simbad: {self.first_id_simbad}
+        """
+        return _string
+
+    def _fetch_lines_fluxes_ned(self):
         """Get the luminosities of the optical lines from the NED photometry table."""
         log.info(f"Searching NED line fluxes for source {self.name}")
         # let us load all the photometric measurements, but let us filter only
@@ -85,9 +84,9 @@ class Source:
         lines_flux_tables = [
             get_flux_measurements_from_ned_table(ned_table, band) for band in lines_list
         ]
-        self.lines_flux_table_ned = vstack(lines_flux_tables)
+        return vstack(lines_flux_tables)
 
-    def get_radio_fluxes(self):
+    def _fetch_radio_fluxes_ned(self):
         """Get the radio flux measurements from the NED photometry table."""
         log.info(f"Searching NED radio fluxes for source {self.name}")
         ned_table = Ned.get_table(self.name, table="photometry")
@@ -100,17 +99,44 @@ class Source:
             get_flux_measurements_from_ned_table(ned_table, band)
             for band in radio_bands
         ]
-        self.radio_flux_table_ned = vstack(radio_flux_tables)
+        return vstack(radio_flux_tables)
 
-    def __repr__(self):
-        _string = f"""
-            name : {self.name}
-            ra : {self.coords.ra:.2f}
-            dec : {self.coords.dec:.2f}
-            z : {self.z:.3f}
-            source_type: {self.source_type_simbad}
-            sdss_id_simbad: {self.sdss_id_simbad}
-            nvss_id_simbad: {self.nvss_id_simbad}
-            first_id_simbad: {self.first_id_simbad}
+    @cached_property
+    def lines_flux_table(self):
+        """Get the optical line fluxes from NED."""
+        return self._fetch_lines_fluxes_ned()
+
+    @cached_property
+    def radio_flux_table(self):
+        """Get the radio flux measurements from NED."""
+        return self._fetch_radio_fluxes_ned()
+
+    @cached_property
+    def radio_sed(self):
+        # accessing self.radio_flux_table triggers its own cached_property logic
+        return compile_radio_sed(self.radio_flux_table)
+
+    def plot_radio_sed(self, ax=None):
+        """Plot the radio SED, both original and binned."""
+        if ax is None:
+            ax = plt.gca()
+
+        if self.radio_sed is None:
+            log.warning(
+                f"No radio SED available for source {self.name}, cannot plot it."
+            )
+            return
+        else:
+            _plot_radio_sed(self.radio_sed, ax=ax)
+
+    @cached_property
+    def morx_xmatch_table(self):
+        """Returns the MORX counterpart table.
+        Lazy loads the logic from the crossmatching module on first access.
         """
-        return _string
+        # IMPORT HERE, not at the top of the file.
+        # this prevents circular dependency issues.
+        from .crossmatching import search_morx_counterpart
+
+        # call the external function passing 'self'
+        return search_morx_counterpart(self, radius_cone_search=3 * u.arcmin)
