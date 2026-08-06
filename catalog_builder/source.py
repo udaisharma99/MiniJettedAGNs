@@ -7,6 +7,7 @@ from astropy.coordinates import Distance
 from astroquery.ned import Ned
 from astropy.table import vstack
 import matplotlib.pyplot as plt
+from .catalogs import nvss
 from .catalog_utils import (
     get_sky_coordinates_simbad,
     get_redshift_simbad,
@@ -14,6 +15,7 @@ from .catalog_utils import (
     get_source_type_simbad,
 )
 from .flux_utils import (
+    convert_F_nu_to_luminosity,
     get_flux_measurements_from_ned_table,
     compile_radio_sed,
     _plot_radio_sed,
@@ -54,6 +56,34 @@ class Source:
         self.nvss_id_simbad = get_source_survey_identifier(self.name, "NVSS")
         # search the FIRST name
         self.first_id_simbad = get_source_survey_identifier(self.name, "FIRST")
+
+    def get_L_nvss(self):
+        """Get the NVSS luminosity."""
+        if self.nvss_id_simbad == "" or "B" in self.nvss_id_simbad:
+            # source has no NVSS ID, or some strange B in their name
+            # e.g. NVSS B121650+060612
+            return np.nan, np.nan
+        else:
+            # sources in the NVSS catalogue don't have the NVSS J prefix as in Simbad
+            stripped_nvss_id = self.nvss_id_simbad.strip("NVSS J")
+            _table = nvss.query_constraints(NVSS=stripped_nvss_id)
+            if len(_table) > 0:
+                L_nvss = convert_F_nu_to_luminosity(
+                    1.4 * u.GHz, _table[0]["S1.4"][0], u.mJy, self.d_L
+                )
+                L_nvss_err = convert_F_nu_to_luminosity(
+                    1.4 * u.GHz, _table[0]["e_S1.4"][0], u.mJy, self.d_L
+                )
+                return L_nvss, L_nvss_err
+            else:
+                log.warning(
+                    f"NVSS J {stripped_nvss_id} not found in NVSS catalogue by Vizier."
+                )
+                return np.nan, np.nan
+
+    def get_L_first(self):
+        """TODO: add this function."""
+        pass
 
     def __repr__(self):
         _string = f"""
@@ -99,7 +129,27 @@ class Source:
             get_flux_measurements_from_ned_table(ned_table, band)
             for band in radio_bands
         ]
-        return vstack(radio_flux_tables)
+        if len(radio_flux_tables) > 0:
+            return vstack(radio_flux_tables)
+        else:
+            return None
+
+    def _fetch_x_ray_fluxes_ned(self):
+        """Get the X-ray flux measurements from the NED photometry table."""
+        log.info(f"Searching NED X-ray fluxes for source {self.name}")
+        ned_table = Ned.get_table(self.name, table="photometry")
+        # search in the NED table, every band indicated by keV
+        xray_mask = np.asarray(["keV" in _ for _ in ned_table["Observed Passband"]])
+        xray_bands = ned_table["Observed Passband"][xray_mask]
+        xray_flux_tables = [
+            get_flux_measurements_from_ned_table(ned_table, band) for band in xray_bands
+        ]
+        return vstack(xray_flux_tables)
+
+    @cached_property
+    def x_ray_flux_table(self):
+        """Get the X-ray flux measurements from NED."""
+        return self._fetch_x_ray_fluxes_ned()
 
     @cached_property
     def lines_flux_table(self):
@@ -114,9 +164,12 @@ class Source:
     @cached_property
     def radio_sed(self):
         # accessing self.radio_flux_table triggers its own cached_property logic
-        return compile_radio_sed(self.radio_flux_table)
+        if self.radio_flux_table is not None:
+            return compile_radio_sed(self.radio_flux_table)
+        else:
+            return None
 
-    def plot_radio_sed(self, ax=None):
+    def plot_radio_sed(self, fit, ax=None):
         """Plot the radio SED, both original and binned."""
         if ax is None:
             ax = plt.gca()
@@ -127,7 +180,7 @@ class Source:
             )
             return
         else:
-            _plot_radio_sed(self.radio_sed, ax=ax)
+            _plot_radio_sed(self.radio_sed, fit, ax=ax)
 
     @cached_property
     def morx_xmatch_table(self):
@@ -136,7 +189,7 @@ class Source:
         """
         # IMPORT HERE, not at the top of the file.
         # this prevents circular dependency issues.
-        from .crossmatching import search_morx_counterpart
+        from .crossmatching_x_ray import search_morx_counterpart
 
         # call the external function passing 'self'
         return search_morx_counterpart(self, radius_cone_search=3 * u.arcmin)

@@ -10,13 +10,13 @@ import matplotlib.pyplot as plt
 log = logging.getLogger(__name__)
 
 
-def convert_flux_to_luminosity(flux, distance):
+def convert_x_ray_flux_to_luminosity(flux, distance):
     """From a flux in mW/m2, returns a luminosity in erg s-1."""
     flux = flux * u.mW / u.m**2
     D_L = distance.to(u.cm)  # Convert Mpc to cm for consistent units
     flux_in_cgs = flux.to(u.erg / (u.s * u.cm**2))
     luminosity = 4 * np.pi * D_L**2 * flux_in_cgs
-    return luminosity.to(u.erg / u.s)
+    return luminosity.to_value(u.erg / u.s)
 
 
 def convert_F_nu_to_luminosity(nu, F_nu, F_nu_unit, distance):
@@ -122,7 +122,7 @@ def get_flux_measurements_from_ned_table(ned_table, band):
     return reformat_ned_table(table)
 
 
-def compile_radio_sed(ned_radio_flux_table):
+def compile_radio_sed(ned_table):
     """Compile the radio SED from the NED radio flux measurements
     obtained from the `reformat_ned_table` function.
     """
@@ -131,11 +131,11 @@ def compile_radio_sed(ned_radio_flux_table):
     Fnu_err = np.array([]) * u.Jy
 
     for band, value, uncertainty, is_ul, unit in zip(
-        ned_radio_flux_table["Observed Passband"],
-        ned_radio_flux_table["flux"],
-        ned_radio_flux_table["flux_err"],
-        ned_radio_flux_table["is_ul"],
-        ned_radio_flux_table["unit"],
+        ned_table["Observed Passband"],
+        ned_table["flux"],
+        ned_table["flux_err"],
+        ned_table["is_ul"],
+        ned_table["unit"],
     ):
         # for this SED, we will consider only measurements with uncertainities.
         if np.isnan(uncertainty) or is_ul:
@@ -205,7 +205,26 @@ def compile_radio_sed(ned_radio_flux_table):
     }
 
 
-def _plot_radio_sed(sed, ax=None):
+def _fit_radio_sed(sed_dict):
+    """Fit the radio SED with a power law between 1 and 100 GHz.
+    Works with the dictionary output of `compile_radio_sed`."""
+    # only consider frequencies between 1 GHz and 100 GHz
+    mask = (sed_dict["nu"] > 1e9 * u.Hz) & (sed_dict["nu"] < 1e11 * u.Hz)
+    log_nu = np.log10(sed_dict["nu"][mask].to("Hz").value)
+    log_nuFnu = np.log10(sed_dict["nuFnu"][mask].value)
+    weights = (
+        1 / (sed_dict["nuFnu_err"][mask].value / sed_dict["nuFnu"][mask].value) ** 2
+    )
+    coeffs = np.polyfit(log_nu, log_nuFnu, deg=1, w=weights)
+    alpha = coeffs[0]
+    log_A = coeffs[1]
+    A = 10**log_A
+
+    # return the fitted parameters
+    return A, alpha
+
+
+def _plot_radio_sed(sed, fit=False, ax=None):
     """Plot the radio SED, both original and binned.
     sed has the format returned by `compile_radio_sed` function."""
     if ax is None:
@@ -234,6 +253,18 @@ def _plot_radio_sed(sed, ax=None):
         ls="",
         label="binned",
     )
+
+    if fit:
+        A, alpha = _fit_radio_sed(sed)
+        nu_fit = np.logspace(9, 11, 100) * u.Hz
+        nuFnu_fit = A * nu_fit**alpha
+        ax.plot(
+            nu_fit,
+            nuFnu_fit,
+            label=f"fit, alpha={(alpha - 1):.2f}",
+            color="crimson",
+        )
+
     # ax.set_xlim([1e6, 1e12])
     ax.set_xscale("log")
     ax.set_yscale("log")

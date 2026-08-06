@@ -35,8 +35,7 @@ first = Vizier(
     catalog="VIII/92/first14", columns=["FIRST", "Fint", "Rms"], row_limit=-1
 )
 
-# - X-ray catalogues
-# -- MORX
+# - MORX
 cols_morx = [
     "Name",
     "RAJ2000",
@@ -59,69 +58,19 @@ cols_morx = [
 ]
 morx = Vizier(catalog="V/158/morxv2", columns=cols_morx, row_limit=-1)
 
-"""
-## - X-ray catalogues
-# NOTE: for 4XMM there is already a DR14 that required to be ingested as a file
-# let use DR13 from Vizier for now
-cols_xmm = [
-    "iauname",
-    "ra",
-    "dec",
-    "sc_ep_4_flux",
-    "sc_ep_4_flux_err",
-    "sc_ep_5_flux",
-    "sc_ep_5_flux_err",
-    "sc_hr3",
-    "sc_hr4",
-    "sc_hr3_err",
-    "sc_hr4_err",
-    "sc_var_flag",
-]
-fourxmm = Vizier(columns=cols_xmm, row_limit=-1).get_catalogs("IX/69/xmm4d13s")
-log.info("loaded 4XMM-DR13 catalogue from Vizier")
+# - X-ray catalogues
+# -- Chandra catalogues
+csc1 = Vizier(catalog="IX/45/csc11", columns=["**"], row_limit=-1)
+csc2 = Vizier(catalog="	IX/57/csc2master", columns=["**"], row_limit=-1)
+csc_acis = Vizier(catalog="J/ApJS/224/40", columns=["**"], row_limit=-1)
 
-cols_csc = [
-    "RAICRS",
-    "DEICRS",
-    "2CXO",
-    "FPL0.5-7",
-    "b_FPL0.5-7",
-    "B_FPL0.5-7",
-    "GamPL",
-    "b_GamPL",
-    "B_GamPL",
-    "HRhm",
-    "b_HRhm",
-    "B_HRhm",
-    "fv",
-]
-cxotwo = Vizier(columns=cols_csc, row_limit=-1).get_catalogs("IX/70/csc21mas")
-log.info("loaded CSC2 catalogue from Vizier")
+# -- XMM catalogues
 
-cols_twosxps = [
-    "RAJ2000",
-    "DEJ2000",
-    "IAUName",
-    "FPCO0",
-    "e_FPCO0",
-    "E_FPCO0",
-    "Gamma",
-    "e_Gamma",
-    "E_Gamma",
-    "HR2",
-    "e_HR2",
-    "E_HR2",
-]
-twosxps_swift = Vizier(columns=cols_twosxps, row_limit=-1).get_catalogs("IX/58/2sxps")
-log.info("loaded 2SXPS catalogue from Vizier")
+# 4XMM DR14 is not available from Vizier, let use DR13 for the moment
+_2xmm = Vizier(catalog="IX/69/xmm4d13s", columns=["**"], row_limit=-1)
+_2xmmi = Vizier(catalog="IX/69/xmm4d13s", columns=["**"], row_limit=-1)
+_4xmm = Vizier(catalog="IX/69/xmm4d13s", columns=["**"], row_limit=-1)
 
-bat157 = Table.read(
-    f"{main_dir_path}/data/catalogues/BAT_157m.txt",
-    format="ascii",
-    delimiter="|"
-)
-
-x_ray_catalogs = [morx[0], fourxmm, cxotwo[0], twosxps_swift[0], bat157]
 
 torresi_sources = [
     "SDSS J004150.47-091811.2",
@@ -144,11 +93,3 @@ torresi_sources = [
     "SDSS J171522.97+572440.2",
     "SDSS J235744.10-001029.9",
 ]
-
-## - Gamma-ray catalogues
-fermi_4fgl = Table.read(f"{main_dir_path}/data/catalogues/4fgl-dr4.fit", format="fits")
-
-fermi_transient = Table.read(f"{main_dir_path}/data/catalogues/1FLT_final_V23.fits", format="fits")
-
-gamma_ray_catalogs = [fermi_4fgl, fermi_transient]
-"""
